@@ -2,7 +2,6 @@ package com.example.memorygame
 
 import android.media.MediaPlayer
 import android.os.Bundle
-import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
 import androidx.appcompat.app.AppCompatActivity
@@ -12,7 +11,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.GridLayoutManager
 import com.example.memorygame.LobbyActivity.Companion.EXTRA_DIFICULTY
 import com.example.memorygame.databinding.ActivityBoardBinding
-
 
 class BoardActivity : AppCompatActivity(), BoardAdapter.OnCardItemListener {
 
@@ -26,8 +24,12 @@ class BoardActivity : AppCompatActivity(), BoardAdapter.OnCardItemListener {
         super.onCreate(savedInstanceState)
         difficulty = intent.getSerializableExtra(EXTRA_DIFICULTY) as BoardDifficulty
         binding = DataBindingUtil.setContentView(this, R.layout.activity_board)
-        viewModel = ViewModelProvider(this, BoardViewModelFactory(difficulty, BoardUseCaseImp()))
-            .get(BoardViewModel::class.java)
+
+        viewModel = ViewModelProvider(
+            this,
+            BoardViewModelFactory(difficulty, BoardUseCaseImp())
+        ).get(BoardViewModel::class.java)
+
         binding.viewModel = viewModel
         binding.lifecycleOwner = this
 
@@ -38,7 +40,7 @@ class BoardActivity : AppCompatActivity(), BoardAdapter.OnCardItemListener {
     private fun initViews() {
         binding.boardTableRv.apply {
             layoutManager = GridLayoutManager(this@BoardActivity, difficulty.columns)
-            boardAdapter = BoardAdapter( this@BoardActivity)
+            boardAdapter = BoardAdapter(this@BoardActivity)
             adapter = boardAdapter
         }
         binding.boardBackBtn.setOnClickListener { onBackPressed() }
@@ -46,23 +48,31 @@ class BoardActivity : AppCompatActivity(), BoardAdapter.OnCardItemListener {
 
     private fun initObservers() {
         viewModel.score.observe(this, Observer { onScoreChanged(it) })
-        viewModel.cardList.observe(this, Observer { updateAdapter(it) })
+        viewModel.cardList.observe(this, Observer {
+            boardAdapter.setCards(it)
+        })
+        viewModel.firstCardState.observe(this, Observer {
+            updaterItemOnAdapter(it.first, it.second)
+        })
+        viewModel.secondCardState.observe(this, Observer {
+            updaterItemOnAdapter(it.first, it.second)
+        })
     }
 
-    private fun updateAdapter(cardList: MutableList<Card>) {
-        boardAdapter.submitCardList(cardList)
-        boardAdapter.notifyDataSetChanged()
+    private fun updaterItemOnAdapter(position: Int, state: State) {
+        boardAdapter.notifyItemChanged(position, state)
     }
 
     private fun onScoreChanged(score: Int) {
         val isWinner: Boolean = viewModel.areYouWinner(score)
-        if (isWinner)
+        if (isWinner) {
             playWinnerAnimation()
-        else
-            playMatch()
+        } else {
+            playMatchSuccess()
+        }
     }
 
-    private fun playMatch() {
+    private fun playMatchSuccess() {
         mediaPlayer = MediaPlayer.create(this, R.raw.game_match)
         mediaPlayer.start()
     }
@@ -78,6 +88,5 @@ class BoardActivity : AppCompatActivity(), BoardAdapter.OnCardItemListener {
         binding.boardLottieAnimation.playAnimation()
     }
 
-    override fun onCardClicked(card: Card, pos: Int) = viewModel.onCardClicked(card, pos)
+    override fun onCardClicked(card: Card, position: Int) = viewModel.onCardClicked(card, position)
 }
-

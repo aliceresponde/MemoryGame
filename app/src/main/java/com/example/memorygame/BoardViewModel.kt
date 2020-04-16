@@ -1,101 +1,91 @@
 package com.example.memorygame
 
+import android.os.Handler
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.memorygame.State.CLOSE
-import com.example.memorygame.State.MATCHED
 import com.example.memorygame.State.OPEN
-
 
 class BoardViewModel(
     private val difficulty: BoardDifficulty,
     private val boardUseCase: BoardUseCase
 ) : ViewModel() {
 
-    private val INVALID_POSITION = -1
     private val maxScore = (difficulty.columns * difficulty.rows) / 2
 
     private var isWaitingForMatch = false
-    private var firstCardPos = INVALID_POSITION
-    private var secondCardPos = INVALID_POSITION
 
-    private var _isBoardActive = MutableLiveData<Boolean>(true)
-    val isBoardActive: LiveData<Boolean> get() = _isBoardActive
+    private var _isBoardActive = MutableLiveData(true)
+    val isBoardActive: LiveData<Boolean>
+        get() = _isBoardActive
 
-    private var _cardList = MutableLiveData(boardUseCase.getCardsToPlay(maxScore).toMutableList())
-    val cardList: LiveData<MutableList<Card>> get() = _cardList
+    private var _firstCardState = MutableLiveData<Pair<Int, State>>()
+    val firstCardState: LiveData<Pair<Int, State>>
+        get() = _firstCardState
 
-    private val _score = MutableLiveData(0)
+    private var _secondCardState = MutableLiveData<Pair<Int, State>>()
+    val secondCardState: LiveData<Pair<Int, State>>
+        get() = _secondCardState
+
+    private var _cardList = MutableLiveData<List<Card>>()
+    val cardList: LiveData<List<Card>>
+        get() = _cardList
+
+    private val _score = MutableLiveData(INITIAL_SCORE)
     val score: LiveData<Int>
         get() = _score
+
+    init {
+        getCards()
+    }
+
+    private fun getCards() {
+        _cardList.value = boardUseCase.getCardsToPlay(maxScore).toMutableList()
+    }
 
     fun getMaxScore() = maxScore
 
     fun onCardClicked(clickedCard: Card, position: Int) {
         if (clickedCard.state == CLOSE) {
-            openCard(clickedCard, position)
-            if (!isWaitingForMatch) {
-                firstCardPos = position
-            } else {
-                secondCardPos = position
-                lockScreenBy(10000)
+            if (isWaitingForMatch) {
+                _secondCardState.value = Pair(position, OPEN)
                 verifyMatch()
+            } else {
+                _firstCardState.value = Pair(position, OPEN)
             }
             isWaitingForMatch = !isWaitingForMatch
         }
     }
 
     private fun verifyMatch() {
-        val firstCard = cardList.value?.get(firstCardPos)
-        val secondCard = cardList.value?.get(secondCardPos)
-        val matchResult = boardUseCase.verifyMatch(firstCard, secondCard)
-        if (matchResult) {
-            val currentScore = score.value ?: 0
-            matchCards(firstCard, secondCard)
-            _score.value = currentScore + 1
-        } else {
-            closeCards(firstCard, secondCard)
-        }
-        firstCardPos = INVALID_POSITION
-        secondCardPos = INVALID_POSITION
-    }
-
-    private fun lockScreenBy(timeMillis: Long) {
         _isBoardActive.value = false
-        Thread.sleep(1000)
-        _isBoardActive.value = true
-    }
 
-    private fun matchCards(firstCard: Card?, secondCard: Card?) {
-        firstCard?.let { matchCard(firstCard, firstCardPos) }
-        secondCard?.let { matchCard(secondCard, secondCardPos) }
-    }
+        val firstPosition = firstCardState.value?.first ?: INVALID_POSITION
+        val secondPosition = secondCardState.value?.first ?: INVALID_POSITION
 
-    private fun closeCards(firstCard: Card?, secondCard: Card?) {
-        firstCard?.let { closeCard(firstCard, firstCardPos) }
-        secondCard?.let { closeCard(secondCard, secondCardPos) }
-    }
-
-    private fun changeCardState(card: Card, position: Int, newState: State) {
-        val copyCards = cardList.value ?: mutableListOf()
-        copyCards[position] = card.copy(state = newState)
-        _cardList.value = copyCards
-    }
-
-    private fun openCard(card: Card, position: Int) {
-        changeCardState(card, position, OPEN)
-    }
-
-    private fun closeCard(card: Card, position: Int) {
-        changeCardState(card, position, CLOSE)
-    }
-
-    private fun matchCard(card: Card, position: Int) {
-        changeCardState(card, position, MATCHED)
+        val firstCard = cardList.value?.get(firstPosition)
+        val secondCard = cardList.value?.get(secondPosition)
+        if (boardUseCase.verifyMatch(firstCard, secondCard)) {
+            val currentScore = score.value ?: 0
+            _score.value = currentScore + 1
+            _isBoardActive.value = true
+        } else {
+            Handler().postDelayed({
+                _firstCardState.value = Pair(firstPosition, CLOSE)
+                _secondCardState.value = Pair(secondPosition, CLOSE)
+                _isBoardActive.value = true
+            }, REVEAL_WAIT_TIME_MILLIS)
+        }
     }
 
     fun areYouWinner(score: Int): Boolean {
         return boardUseCase.areYouWinner(score, difficulty)
+    }
+
+    companion object {
+        private const val INITIAL_SCORE = 0
+        private const val INVALID_POSITION = -1
+        private const val REVEAL_WAIT_TIME_MILLIS = 500L
     }
 }

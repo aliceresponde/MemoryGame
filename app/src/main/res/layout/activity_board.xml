@@ -4,7 +4,6 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
-
         <variable
             name="viewModel"
             type="com.example.memorygame.BoardViewModel" />
@@ -57,23 +56,23 @@
             android:textColor="@color/colorPrimaryDark"
             android:textSize="16sp"
             android:textStyle="bold"
+            android:layout_marginEnd="16dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/board_progress"
-            tools:text="@string/board_score_label"
-            android:layout_marginEnd="16dp" />
+            tools:text="@string/board_score_label" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/board_table_rv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="156dp"
+            android:clickable="@{viewModel.isBoardActive}"
             app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/board_score_tv"
             tools:itemCount="12"
-            android:clickable="@{viewModel.isBoardActive}"
             tools:listitem="@layout/item_board_layout"
             tools:spanCount="3" />
 
@@ -81,14 +80,14 @@
             android:id="@+id/board_lottie_animation"
             android:layout_width="0dp"
             android:layout_height="0dp"
+            android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:lottie_loop="true"
-            app:lottie_autoPlay="false"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/board_score_tv"
+            app:lottie_autoPlay="false"
             app:lottie_fileName="winner_animation.json"
-            android:visibility="gone"/>
+            app:lottie_loop="true" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

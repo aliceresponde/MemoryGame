@@ -18,6 +18,7 @@ interface BoardUseCase {
 }
 
 class BoardUseCaseImp : BoardUseCase {
+
     private val cardSet = setOf(
         Card(BAT),
         Card(COW),
@@ -37,20 +38,21 @@ class BoardUseCaseImp : BoardUseCase {
 
     override fun getCardsToPlay(numberOfCharacters: Int): List<Card> {
         val characters = getCharacters(numberOfCharacters)
-        var cardList = mutableListOf<Card>()
+        val cardList = mutableListOf<Card>()
         cardList.addAll(characters.shuffled())
         cardList.addAll(characters.shuffled())
         return cardList
     }
 
     override fun verifyMatch(firstCard: Card?, secondCard: Card?): Boolean =
-        firstCard != null && secondCard != null && (firstCard?.character == secondCard?.character)
+        firstCard != null && secondCard != null && (firstCard.character == secondCard.character)
 
     override fun areYouWinner(score: Int, difficulty: BoardDifficulty): Boolean {
         val maxScore = getMaxScore(difficulty)
         return score == maxScore
     }
 
-    private fun getMaxScore(difficulty: BoardDifficulty) =
-        (difficulty.columns * difficulty.rows) / 2
+    private fun getMaxScore(
+        difficulty: BoardDifficulty
+    ) = (difficulty.columns * difficulty.rows) / 2
 }
